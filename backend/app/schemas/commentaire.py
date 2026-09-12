@@ -4,6 +4,7 @@ from app.database import get_db
 from app.models import Commentaire, BadWord, PhrasePrete
 from app.core.security import get_current_user
 import language_tool_python
+import bleach
 
 tool = language_tool_python.LanguageTool("fr-FR")
 
@@ -21,7 +22,9 @@ def create_commentaire(data: dict, db: Session = Depends(get_db),
                       current_user=Depends(get_current_user)):
 
     contenu = data["contenu"]
+    contenu = bleach.clean(contenu, strip=True)  # <-- nettoyage XSS ajouté ici
     articleId = data["articleId"]
+
 
     # 1) filtrer les bad words
     bad_words = db.query(BadWord).all()

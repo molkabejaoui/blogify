@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { users, DEFAULT_AVATAR } from "../data/mockData";
+import { register as apiRegister } from "../services/api";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -10,42 +10,31 @@ export default function Register() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
-  const [avatarFile, setAvatarFile] = useState(null);
   const [error, setError] = useState("");
 
-  // 🔁 Si déjà connecté → home
   useEffect(() => {
     if (user) navigate("/");
   }, [user, navigate]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
 
-    if (!nom || !email || !motDePasse) {
-      setError("Tous les champs sont obligatoires");
-      return;
-    }
+  try {
+    // On envoie un objet propre
+    await apiRegister({
+      nom: nom.trim(),
+      email: email.trim(),
+      motDePasse: motDePasse,
+    });
 
-    if (users.some(u => u.email === email)) {
-      setError("Email déjà utilisé");
-      return;
-    }
-
-    const newUser = {
-      id: Date.now(),
-      nom,
-      email,
-      motDePasse,
-      avatar: avatarFile
-        ? URL.createObjectURL(avatarFile)
-        : DEFAULT_AVATAR,
-      dateInscription: new Date().toISOString(),
-      roleId: 2
-    };
-
-    users.push(newUser);
     navigate("/login");
-  };
+  } catch (err) {
+    // On affiche le message précis du backend (ex: "Email déjà utilisé")
+    const message = err.response?.data?.detail || "Erreur d'inscription";
+    setError(Array.isArray(message) ? "Données invalides" : message);
+  }
+};
 
   return (
     <div className="login-page">
@@ -54,14 +43,23 @@ export default function Register() {
 
         {error && <p className="error">{error}</p>}
 
-        <input placeholder="Nom" value={nom} onChange={e => setNom(e.target.value)} />
-        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input type="password" placeholder="Mot de passe" value={motDePasse} onChange={e => setMotDePasse(e.target.value)} />
+        <input
+          placeholder="Nom"
+          value={nom}
+          onChange={(e) => setNom(e.target.value)}
+        />
 
         <input
-          type="file"
-          accept="image/*"
-          onChange={e => setAvatarFile(e.target.files[0])}
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="Mot de passe"
+          value={motDePasse}
+          onChange={(e) => setMotDePasse(e.target.value)}
         />
 
         <button type="submit">S'inscrire</button>

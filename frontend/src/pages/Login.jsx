@@ -1,5 +1,3 @@
-// src/pages/Login.jsx
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -10,7 +8,8 @@ export default function Login() {
   const { login, user } = useAuth();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [motDePasse, setMotDePasse] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (user) navigate("/");
@@ -18,13 +17,20 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await login({ email, password });
+    setError("");
 
-    if (success) {
-      const redirectTo = location.state?.from?.pathname || "/";
-      const scrollY = location.state?.scrollY || 0;
-      navigate(redirectTo, { state: { scrollY } });
+    const success = await login({
+      email,
+      motDePasse, // ✅ NOM EXACT DU BACKEND
+    });
+
+    if (!success) {
+      setError("Email ou mot de passe incorrect");
+      return;
     }
+
+    const redirectTo = location.state?.from?.pathname || "/";
+    navigate(redirectTo);
   };
 
   return (
@@ -32,14 +38,26 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="login-form">
         <h2>Connexion</h2>
 
-        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
-        <input value={password} onChange={e => setPassword(e.target.value)} placeholder="Mot de passe" type="password" />
+        {error && <p className="error">{error}</p>}
+
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="Mot de passe"
+          value={motDePasse}
+          onChange={(e) => setMotDePasse(e.target.value)}
+        />
 
         <button type="submit">Se connecter</button>
 
         <div className="login-register">
           <span>Vous n'avez pas de compte ?</span>
-          <Link to="/register" className="register-link">S'inscrire</Link>
+          <Link to="/register">S'inscrire</Link>
         </div>
       </form>
     </div>

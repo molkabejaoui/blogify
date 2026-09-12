@@ -1,65 +1,47 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
 from app.database import get_db
 from app.models import Favori, Article
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user 
 
 router = APIRouter(prefix="/favoris", tags=["favoris"])
-
-
-@router.post("/add/{article_id}")
-def add_favorite(
+# met un Article en Favori pour un utilisateur connecté et permet de retirer le favori si il existe deja
+@router.post("/toggle/{article_id}")
+def toggle_favorite(
     article_id: int,
     db: Session = Depends(get_db),
-    user = Depends(get_current_user)
+    user=Depends(get_current_user) # Réactivé
 ):
-    # 1️⃣ Vérifier si l'utilisateur est connecté
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Vous devez être connecté pour ajouter aux favoris"
-        )
-
-    # 2️⃣ Vérifier si l'article existe
-    article = db.query(Article).filter(
-        Article.idAr == article_id,
-        Article.estPublie == True
-    ).first()
-
+    # 1. Vérifier si l'article existe
+    article = db.query(Article).filter(Article.idAr == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Article introuvable")
 
-    # 3️⃣ Vérifier si déjà dans les favoris
+    # 2. Chercher si le favori existe déjà pour l'utilisateur connecté
     existing = db.query(Favori).filter(
-        Favori.utilisateurId == user.id,
+        Favori.utilisateurId == user.id, # Utilisation de user.id du token
         Favori.articleId == article_id
     ).first()
 
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Déjà ajouté aux favoris"
-        )
-
-    # 4️⃣ Ajouter aux favoris
-    fav = Favori(utilisateurId=user.id, articleId=article_id)
-    db.add(fav)
-    db.commit()
-    db.refresh(fav)
-
-    return {"message": "Ajouté aux favoris"}
-
+        # SI EXISTE -> ON SUPPRIME (Bien aligné)
+        db.delete(existing)
+        db.commit()
+        return {"status": "removed", "message": "Retiré des favoris"}
+    else:
+        # SI ABSENT -> ON AJOUTE (Correction de l'indentation ici)
+        fav = Favori(utilisateurId=user.id, articleId=article_id)
+        db.add(fav)
+        db.commit()
+        return {"status": "added", "message": "Ajouté aux favoris"}
 
 @router.get("/")
 def get_favorites(
-    db: Session = Depends(get_db),
-    user = Depends(get_current_user)
+    db: Session = Depends(get_db), 
+    user=Depends(get_current_user)
 ):
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Vous devez être connecté"
-        )
-
-    return db.query(Favori).filter(Favori.utilisateurId == user.id).all()
+    # Récupère uniquement les articles favoris de l'utilisateur connecté
+    favoris = db.query(Article).join(Favori, Favori.articleId == Article.idAr).filter(
+        Favori.utilisateurId == user.id
+    ).all()
+    return favoris

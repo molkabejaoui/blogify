@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
-from .database import Base
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
+from sqlalchemy.orm import declarative_base
 import datetime
+
+Base = declarative_base()
 
 class Utilisateur(Base):
     __tablename__ = "utilisateur"
@@ -11,12 +12,7 @@ class Utilisateur(Base):
     motDePasse = Column(String(255))
     avatar = Column(String(255))
     dateInscription = Column(DateTime, default=datetime.datetime.utcnow)
-    roleId = Column(Integer, ForeignKey("role.idR"))
-
-    role = relationship("Role")
-    articles = relationship("Article", back_populates="utilisateur")
-    favoris = relationship("Favori", back_populates="utilisateur")
-    commentaires = relationship("Commentaire", back_populates="utilisateur")
+    roleId = Column(Integer)
 
 class Role(Base):
     __tablename__ = "role"
@@ -40,58 +36,46 @@ class Article(Base):
     contenu = Column(Text)
     image = Column(String(255))
     datePublication = Column(DateTime, default=datetime.datetime.utcnow)
-    utilisateurId = Column(Integer, ForeignKey("utilisateur.id"))
+    utilisateurId = Column(Integer)
     vues = Column(Integer, default=0)
     lectureMoyenne = Column(Integer, default=0)
     estPublie = Column(Boolean, default=False)
 
-    utilisateur = relationship("Utilisateur", back_populates="articles")
-    commentaires = relationship("Commentaire", back_populates="article")
-    favoris = relationship("Favori", back_populates="article")
-
 class ArticleTag(Base):
     __tablename__ = "articletag"
     idArTag = Column(Integer, primary_key=True, index=True)
-    articleId = Column(Integer, ForeignKey("article.idAr"))
-    tagId = Column(Integer, ForeignKey("tag.idT"))
+    articleId = Column(Integer)
+    tagId = Column(Integer)
 
 class ArticleCategorie(Base):
     __tablename__ = "articlecategorie"
     id = Column(Integer, primary_key=True, index=True)
-    articleId = Column(Integer, ForeignKey("article.idAr"))
-    categorieId = Column(Integer, ForeignKey("categorie.idC"))
+    articleId = Column(Integer)
+    categorieId = Column(Integer)
 
 class Favori(Base):
     __tablename__ = "favori"
     idF = Column(Integer, primary_key=True, index=True)
-    utilisateurId = Column(Integer, ForeignKey("utilisateur.id"))
-    articleId = Column(Integer, ForeignKey("article.idAr"))
+    utilisateurId = Column(Integer)
+    articleId = Column(Integer)
     dateAjout = Column(DateTime, default=datetime.datetime.utcnow)
-
-    utilisateur = relationship("Utilisateur", back_populates="favoris")
-    article = relationship("Article", back_populates="favoris")
 
 class Commentaire(Base):
     __tablename__ = "commentaire"
     idCmm = Column(Integer, primary_key=True, index=True)
     contenu = Column(Text)
     dateCommentaire = Column(DateTime, default=datetime.datetime.utcnow)
-    utilisateurId = Column(Integer, ForeignKey("utilisateur.id"))
-    articleId = Column(Integer, ForeignKey("article.idAr"))
+    utilisateurId = Column(Integer)
+    articleId = Column(Integer)
     parentId = Column(Integer, default=0)
-
-    utilisateur = relationship("Utilisateur", back_populates="commentaires")
-    article = relationship("Article", back_populates="commentaires")
 
 class Statistiques(Base):
     __tablename__ = "statistiques"
     idStat = Column(Integer, primary_key=True, index=True)
-    articleId = Column(Integer, ForeignKey("article.idAr"))
+    articleId = Column(Integer)
     vues = Column(Integer, default=0)
     nbCommentaires = Column(Integer, default=0)
     tempsLecture = Column(Integer, default=0)
-
-# ====== NOUVELLES TABLES ======
 
 class BadWord(Base):
     __tablename__ = "bad_word"
@@ -102,5 +86,3 @@ class PhrasePrete(Base):
     __tablename__ = "phrase_prete"
     id = Column(Integer, primary_key=True, index=True)
     phrase = Column(String(255), unique=True)
-
-#fichier de definition des tables de la base

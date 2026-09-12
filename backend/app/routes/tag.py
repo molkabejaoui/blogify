@@ -3,12 +3,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Tag
 from app.core.auth import admin_required
+import bleach
+# bleach permet de netoiyer les entree http pour eviter les attaque xss
 
 router = APIRouter(prefix="/tag", tags=["tag"])
 
 @router.post("/admin/create")
 def create_tag(nom: str, db: Session = Depends(get_db), admin = Depends(admin_required)):
-    tag = Tag(nom=nom)
+    nom_clean = bleach.clean(nom, strip=True)
+    tag = Tag(nom=nom_clean)
     db.add(tag)
     db.commit()
     return {"message": "Tag créé"}

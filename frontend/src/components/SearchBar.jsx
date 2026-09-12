@@ -1,52 +1,85 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export default function SearchBar({ data, placeholder, onSelect }) {
+// ✅ Même fonction que dans Home.jsx — extrait le texte propre sans HTML
+const extractFirstParagraph = (htmlContent) => {
+  if (!htmlContent) return "";
+  const temp = document.createElement("div");
+  temp.innerHTML = htmlContent;
+
+  // Chercher le premier <p> qui contient du vrai texte (pas vide)
+  const paragraphs = temp.querySelectorAll("p");
+  for (let p of paragraphs) {
+    const text = p.textContent?.trim();
+    if (text && text.length > 10) { // ignorer les <p> vides ou trop courts
+      return text.length > 80 ? text.substring(0, 80) + "…" : text;
+    }
+  }
+
+  // Fallback : prendre tout le texte brut
+  const fallback = temp.textContent?.trim() || "";
+  return fallback.length > 80 ? fallback.substring(0, 80) + "…" : fallback;
+};
+
+export default function SearchBar({ data = [], onSearch }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const boxRef = useRef(null);
 
-  const handleChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-
-    if (value.length === 0) {
+  useEffect(() => {
+    if (!query.trim()) {
       setResults([]);
       return;
     }
-
-    const filtered = data.filter((item) =>
-      item.titre.toLowerCase().includes(value.toLowerCase())
+    const q = query.toLowerCase();
+    const filtered = data.filter((a) =>
+      a.titre?.toLowerCase().includes(q) ||
+      a.contenu?.toLowerCase().includes(q) ||
+      a.tags?.some((tag) => tag.nom?.toLowerCase().includes(q))
     );
+    setResults(filtered.slice(0, 6));
+  }, [query, data]);
 
-    setResults(filtered.slice(0, 5)); // max 5 suggestions
-  };
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) {
+        setResults([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
-  const handleSelect = (item) => {
+  const handleSelect = (article) => {
     setQuery("");
     setResults([]);
-    onSelect(item);
+    onSearch(article);
   };
 
   return (
-    <div className="search-container">
+    <div ref={boxRef} className="search-box">
       <input
+        type="text"
+        placeholder="Rechercher par titre, contenu ou tag…"
         value={query}
-        onChange={handleChange}
-        placeholder={placeholder}
-        className="search"
+        onChange={(e) => setQuery(e.target.value)}
+        className="search-input"
       />
-
       {results.length > 0 && (
-        <ul className="search-results">
-          {results.map((item) => (
-            <li
-              key={item.idAr}
-              onClick={() => handleSelect(item)}
+        <div className="search-results" style={{ maxHeight: "320px", overflowY: "auto", scrollbarWidth: "none" }}>
+          {results.map((a) => (
+            <div
+              key={a.idAr}
+              className="search-item"
+              onClick={() => handleSelect(a)}
             >
-              <strong>{item.titre}</strong>
-              <span>{item.resume?.slice(0, 50)}...</span>
-            </li>
+              <div className="search-title">{a.titre}</div>
+              {/* ✅ Texte propre, sans balises HTML */}
+              <div className="search-snippet">
+                {extractFirstParagraph(a.contenu)}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

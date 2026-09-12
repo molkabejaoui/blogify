@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Text, DateTime
 from datetime import datetime
 from app.database import Base
 
@@ -7,6 +7,6 @@ class Commentaire(Base):
     idCmm = Column(Integer, primary_key=True, index=True)
     contenu = Column(Text)
     dateCommentaire = Column(DateTime, default=datetime.utcnow)
-    utilisateurId = Column(Integer, ForeignKey("utilisateur.id"))
-    articleId = Column(Integer, ForeignKey("article.idAr"))
-    parentId = Column(Integer, ForeignKey("commentaire.idCmm"), nullable=True)
+    utilisateurId = Column(Integer)
+    articleId = Column(Integer)
+    parentId = Column(Integer, default=0)

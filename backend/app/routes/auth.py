@@ -4,8 +4,14 @@ from app.database import get_db
 from app.models import Utilisateur, Role
 from app.schemas.auth import LoginSchema, RegisterSchema
 from app.core.auth import create_access_token
+from app.core.auth import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.get("/me")
+def me(user=Depends(get_current_user)):
+    return user
 
 @router.post("/register")
 def register(data: RegisterSchema, db: Session = Depends(get_db)):
